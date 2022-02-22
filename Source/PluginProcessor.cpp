@@ -27,7 +27,12 @@ KraftigSnorAudioProcessor::KraftigSnorAudioProcessor()
     ksSynth.addSound(new KsSound());
 
     for (int i = 0; i < NUM_VOICES; ++i) {
+        // Create a Karplus-Strong voice.
         auto voice = new KsVoice();
+        // Add a couple of sympathetic resonators.
+        voice->addSympatheticResonator();
+        voice->addSympatheticResonator();
+        // Add the voice to the synth.
         ksSynth.addVoice(voice);
     }
 }
@@ -138,12 +143,18 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    auto excitationAttack = this->apvts.getRawParameterValue("EXCITE_A")->load();
+    auto excitationDecay = this->apvts.getRawParameterValue("EXCITE_D")->load();
+    auto excitationSustain = this->apvts.getRawParameterValue("EXCITE_S")->load();
+    auto excitationRelease = this->apvts.getRawParameterValue("EXCITE_R")->load();
+    juce::ADSR::Parameters excitationAdsrParams{excitationAttack, excitationDecay, excitationSustain, excitationRelease};
+
     /**
      * Set parameters here...
      */
     for (int i = 0; i < ksSynth.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<KsVoice *>(ksSynth.getVoice(i))){
-
+            voice->setExcitationEnvelope(excitationAdsrParams);
         }
     }
 
@@ -180,28 +191,28 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "EXCITE_A",
             "Excitation attack (s)",
-            juce::NormalisableRange<float>(0.f, 2.f, .001f),
-            .1f
+            juce::NormalisableRange<float>(0.f, .25f, .001f),
+            .01f
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "EXCITE_D",
             "Excitation Decay (s)",
-            juce::NormalisableRange<float>(0.f, 2.f, .001f),
-            .1f
+            juce::NormalisableRange<float>(0.f, .25f, .001f),
+            .05f
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "EXCITE_S",
             "Excitation Sustain",
-            juce::NormalisableRange<float>(0.f, 1.f, .01f),
+            juce::NormalisableRange<float>(0.f, 1.f, .001f),
             0.f
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "EXCITE_R",
             "Excitation Release (s)",
-            juce::NormalisableRange<float>(0.f, 2.f, .001f),
+            juce::NormalisableRange<float>(0.f, .5f, .001f),
             0.f
     ));
 
@@ -215,6 +226,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "SYMPATHETIC_1_AMOUNT",
             "Sympathetic 1 Amount",
+            juce::NormalisableRange<float>(0.f, 1.f, .01f),
+            0.f
+    ));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            "SYMPATHETIC_2_FREQ",
+            "Sympathetic 2 Frequency",
+            juce::NormalisableRange<float>(20.f, 10000.f, .01f),
+            900.f
+    ));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            "SYMPATHETIC_2_AMOUNT",
+            "Sympathetic 2 Amount",
             juce::NormalisableRange<float>(0.f, 1.f, .01f),
             0.f
     ));

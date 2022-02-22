@@ -31,7 +31,6 @@ void KsVoice::renderNextBlock(juce::AudioBuffer<float> &outputBuffer, int startS
     this->buffer.setSize(outputBuffer.getNumChannels(), numSamples, false, false, true);
     this->buffer.clear();
 
-    // maybe don't need this.
     juce::dsp::AudioBlock<float> audioBlock{this->buffer};
 
     this->resonator.renderNextBlock(audioBlock, 0, (int) audioBlock.getNumSamples());
@@ -55,7 +54,11 @@ void KsVoice::startNote(
 }
 
 void KsVoice::stopNote(float velocity, bool allowTailOff) {
-    // TODO: Should stop as if due to damping
+    this->resonator.stopNote();
+
+    if (!allowTailOff || !this->resonator.isActive()) {
+        clearCurrentNote();
+    }
 }
 
 void KsVoice::controllerMoved(int controllerNumber, int newControllerValue) {
@@ -69,11 +72,17 @@ void KsVoice::pitchWheelMoved(int newPitchWheelValue) {
 void KsVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int numOutputChannels) {
     this->clearCurrentNote();
     juce::dsp::ProcessSpec spec{sampleRate, static_cast<juce::uint32>(samplesPerBlock),
-        static_cast<juce::uint32>(numOutputChannels)};
+                                static_cast<juce::uint32>(numOutputChannels)};
 
-//    this->resonator->prepareToPlay(spec);
+    this->resonator.prepareToPlay(spec);
 
     this->isPrepared = true;
 }
 
+void KsVoice::setExcitationEnvelope(juce::ADSR::Parameters &newParameters) {
+    this->resonator.setExcitationEnvelope(newParameters);
+}
 
+void KsVoice::addSympatheticResonator() {
+    this->resonator.addSympatheticResonator();
+}

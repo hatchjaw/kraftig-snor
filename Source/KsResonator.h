@@ -14,7 +14,9 @@
 
 class KsResonator {
 public:
-    void addSympatheticResonator(float frequency);
+    void prepareToPlay(juce::dsp::ProcessSpec &);
+
+    void addSympatheticResonator();
 
     void renderNextBlock(juce::dsp::AudioBlock<float> &, int startSample, int numSamples);
 
@@ -22,12 +24,26 @@ public:
 
     void setupNote(double sampleRate, double frequency, float noteAmplitude);
 
-private:
-    const int EXCITATION_LENGTH{1000};
+    void stopNote();
 
-    juce::AudioBuffer<float> excitation;
-    int excitationReadIndex{0};
+    bool isActive();
+
+    void setExcitationEnvelope(juce::ADSR::Parameters &newParameters);
+
+private:
+    float getExcitationSample();
+
+    juce::ADSR envelope;
+
+    juce::Random excitation;
+    juce::ADSR excitationEnvelope;
+
+    double fractionalDelay{0.0};
+    uint delayLineLength{0};
     juce::AudioBuffer<float> delayLine;
-    int delayLineReadIndex{1};
+    int delayLineWriteIndex{0};
+
     juce::OwnedArray<KsResonator> sympatheticResonators;
+
+    float amplitude{0.f};
 };

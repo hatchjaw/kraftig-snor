@@ -6,6 +6,7 @@
               pluginManufacturer="TAR" pluginManufacturerCode="TarQ" pluginCode="Tr12">
   <MAINGROUP id="GKWMoJ" name="KraftigSnor">
     <GROUP id="{6B698289-82F3-729E-F3B1-C31D72EDA2A6}" name="Source">
+      <FILE id="SpOF6A" name="Utils.h" compile="0" resource="0" file="Source/Utils.h"/>
       <FILE id="AaqVxa" name="KsResonator.cpp" compile="1" resource="0" file="Source/KsResonator.cpp"/>
       <FILE id="QfrGCX" name="KsResonator.h" compile="0" resource="0" file="Source/KsResonator.h"/>
       <FILE id="xb6m6L" name="KsVoice.cpp" compile="1" resource="0" file="Source/KsVoice.cpp"/>

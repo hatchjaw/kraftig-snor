@@ -35,6 +35,11 @@ public:
     void renderNextBlock(juce::AudioBuffer<float> &outputBuffer,
                          int startSample,
                          int numSamples) override;
+
+    void setExcitationEnvelope(juce::ADSR::Parameters &newParameters);
+
+    void addSympatheticResonator();
+
 private:
     bool isPrepared;
     juce::AudioBuffer<float> buffer;
