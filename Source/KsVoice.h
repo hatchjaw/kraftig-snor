@@ -40,6 +40,10 @@ public:
 
     void addSympatheticResonator();
 
+    void updateSympatheticResonators(float freq1, float amount1, float freq2, float amount2);
+
+    void updateMutePrimary(bool shouldMute);
+
 private:
     bool isPrepared;
     juce::AudioBuffer<float> buffer;

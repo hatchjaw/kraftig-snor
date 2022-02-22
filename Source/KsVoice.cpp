@@ -86,3 +86,11 @@ void KsVoice::setExcitationEnvelope(juce::ADSR::Parameters &newParameters) {
 void KsVoice::addSympatheticResonator() {
     this->resonator.addSympatheticResonator();
 }
+
+void KsVoice::updateSympatheticResonators(float freq1, float amount1, float freq2, float amount2) {
+    this->resonator.updateSympatheticResonators(getSampleRate(), freq1, amount1, freq2, amount2);
+}
+
+void KsVoice::updateMutePrimary(bool shouldMute) {
+    this->resonator.updateMutePrimaryResonator(shouldMute);
+}
