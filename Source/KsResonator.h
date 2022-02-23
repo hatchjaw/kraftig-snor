@@ -12,6 +12,7 @@
 
 #include <JuceHeader.h>
 #include "LowDcNoiseGenerator.h"
+#include "AllpassFilter.h"
 
 class KsResonator {
 public:
@@ -33,7 +34,18 @@ public:
 
     void updateMutePrimaryResonator(bool shouldMute);
 
+    void updateDamping(float newDamping);
+
+    void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
+
 private:
+    /**
+     * A scaling value for the excitation to the primary resonator.
+     */
+    const float EXCITATION_SCALAR{.75f};
+    /**
+     * A scaling value for the excitation to the sympathetic resonators.
+     */
     const float SYMPATHETIC_SCALAR{.25f};
 
     void initDelayLine(double sampleRate, double frequencyToUse);
@@ -47,6 +59,8 @@ private:
     LowDcNoiseGenerator excitation;
     juce::ADSR excitationEnvelope;
 
+    float damping{.5f};
+
     double fractionalDelay{0.0};
     uint delayLineLength{0};
     juce::AudioBuffer<float> delayLine;
@@ -54,9 +68,11 @@ private:
 
     juce::OwnedArray<KsResonator> sympatheticResonators;
     double frequency{0.0};
+
     bool isSympathetic{false};
 
     float amplitude{0.f};
-
     bool mutePrimary{false};
+
+    AllpassFilter allpass;
 };

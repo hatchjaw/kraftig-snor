@@ -7,7 +7,6 @@
 */
 
 #include "PluginProcessor.h"
-#include "PluginEditor.h"
 #include "KsSound.h"
 #include "KsVoice.h"
 
@@ -150,6 +149,12 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
     juce::ADSR::Parameters excitationAdsrParams{excitationAttack, excitationDecay, excitationSustain,
                                                 excitationRelease};
 
+//    auto damping = this->apvts.getRawParameterValue("DAMPING")->load();
+
+    auto inharmonicity1Gain = this->apvts.getRawParameterValue("INHARMONICITY_PRIMARY_GAIN")->load();
+    auto inharmonicity1Order = static_cast<int>(this->apvts.getRawParameterValue(
+            "INHARMONICITY_PRIMARY_ORDER")->load());
+
     auto sympatheticOnly = apvts.getRawParameterValue("SYMPATHETIC_ONLY")->load() > .5f;
     auto sympathetic1Freq = this->apvts.getRawParameterValue("SYMPATHETIC_1_FREQ")->load();
     auto sympathetic1Amount = this->apvts.getRawParameterValue("SYMPATHETIC_1_AMOUNT")->load();
@@ -163,6 +168,8 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
                                                sympathetic1Amount,
                                                sympathetic2Freq,
                                                sympathetic2Amount);
+//            voice->updateDamping(damping);
+            voice->updatePrimaryInharmonicity(inharmonicity1Gain, inharmonicity1Order);
             voice->updateMutePrimary(sympatheticOnly);
         }
     }
@@ -179,7 +186,9 @@ juce::AudioProcessorEditor *KraftigSnorAudioProcessor::createEditor() {
 //    return new KraftigSnorAudioProcessorEditor(*this);
 
     // Let JUCE create a generic UI
-    return new juce::GenericAudioProcessorEditor(*this);
+    auto editor = new juce::GenericAudioProcessorEditor(*this);
+    editor->setSize(400, 500);
+    return editor;
 }
 
 //==============================================================================
@@ -208,7 +217,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
             "EXCITE_D",
             "Excitation Decay (s)",
             juce::NormalisableRange<float>(0.f, .25f, .001f),
-            .025f
+            .01f
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -223,6 +232,26 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
             "Excitation Release (s)",
             juce::NormalisableRange<float>(0.f, .5f, .001f),
             0.f
+    ));
+
+//    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+//            "DAMPING",
+//            "Damping",
+//            juce::NormalisableRange<float>(.5f, 1.f, .001f),
+//            1.f
+//    ));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            "INHARMONICITY_PRIMARY_GAIN",
+            "Inharmonicity gain",
+            juce::NormalisableRange<float>(0.f, .999f, .001f),
+            0.f
+    ));
+
+    params.push_back(std::make_unique<juce::AudioParameterInt>(
+            "INHARMONICITY_PRIMARY_ORDER",
+            "Inharmonicity order",
+            0, 1000, 0
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterBool>("SYMPATHETIC_ONLY", "Mute primary resonator", false));

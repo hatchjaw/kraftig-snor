@@ -23,8 +23,8 @@ void KsResonator::prepareToPlay(juce::dsp::ProcessSpec &spec) {
 
 void KsResonator::renderNextBlock(juce::dsp::AudioBlock<float> &block, int startSample, int numSamples) {
     while (--numSamples >= 0) {
-        auto excitationSample = this->envelopeExcitationSample(this->excitation.getNextSample());
-        auto currentSample = this->computeNextSample(excitationSample);
+        auto excitationSample = EXCITATION_SCALAR * this->envelopeExcitationSample(this->excitation.getNextSample());
+        auto currentSample = Utils::clamp(this->computeNextSample(excitationSample), 1.0f);
 
         for (auto i = (int) block.getNumChannels(); --i >= 0;) {
             block.addSample((int) i, startSample, currentSample);
@@ -35,36 +35,41 @@ void KsResonator::renderNextBlock(juce::dsp::AudioBlock<float> &block, int start
 }
 
 float KsResonator::computeNextSample(float excitationSample) {
-    auto delayLineReadIndex = modulo(this->delayLineWriteIndex - this->fractionalDelay, this->delayLineLength);
+    auto delayLineReadIndex = Utils::ksModulo(this->delayLineWriteIndex - this->fractionalDelay, this->delayLineLength);
     double integralPart;
     auto weight = modf(delayLineReadIndex, &integralPart);
     auto currentIndex = static_cast<int>(integralPart);
 
     auto curr = delayLine.getSample(0, currentIndex);
-    auto prev = delayLine.getSample(0, wrapIndex(currentIndex - 1, static_cast<int>(this->delayLineLength)));
-    auto next = delayLine.getSample(0, wrapIndex(currentIndex + 1, static_cast<int>(this->delayLineLength)));
+    auto prev = delayLine.getSample(0, Utils::wrapIndex(currentIndex - 1, static_cast<int>(this->delayLineLength)));
+    auto next = delayLine.getSample(0, Utils::wrapIndex(currentIndex + 1, static_cast<int>(this->delayLineLength)));
 
     // Karplus-Strong
     // y_{ks}[n] = x[n] + .5*y[n-L] + .5*y[n-(L+1)]
-    // Damp primary resonator on note-off (but let sympathetic resonators ring).
-    auto sample = this->envelope.getNextSample() * static_cast<float>(
+    // TODO: decay stretching/shortening
+    auto sample = static_cast<float>(
             // Scale the excitation by the input amplitude/velocity
             this->amplitude * excitationSample +
             .5f * ((1 - weight) * curr + weight * next) +
             .5f * ((1 - weight) * prev + weight * curr)
     );
 
+    // Inharmonicity
+    sample = this->allpass.processSample(sample);
+
+    // Apply envelope. Damp primary resonator on note-off (but let sympathetic resonators ring).
+    sample *= this->envelope.getNextSample();
+
     this->delayLine.setSample(0, this->delayLineWriteIndex, sample);
     ++this->delayLineWriteIndex;
-    this->delayLineWriteIndex %= this->delayLineLength;
-
+    this->delayLineWriteIndex %= (int) this->delayLineLength;
     if (!this->isSympathetic) {
         // Handle sympathetic resonators. Basic, one-way relationship, i.e. sympathetic resonators don't feed into each
         // other, nor the primary resonator.
         auto sympathetic = 0.f;
         for (auto &sr: this->sympatheticResonators) {
-            // Yes, I know amplitude is being used within the recursive call; this use of amplitude means it's possible to
-            // fade the sympathetic resonators in and out parametrically too.
+            // Yes, I know amplitude is being used within the recursive call; *this* use of amplitude means it's
+            // possible to fade the sympathetic resonators in and out parametrically too.
             sympathetic += sr->amplitude * sr->computeNextSample(sample * SYMPATHETIC_SCALAR);
         }
 
@@ -148,4 +153,13 @@ void KsResonator::updateSympatheticResonators(
 
 void KsResonator::updateMutePrimaryResonator(bool shouldMute) {
     this->mutePrimary = shouldMute;
+}
+
+void KsResonator::updateDamping(float newDamping) {
+    this->damping = newDamping;
+}
+
+void KsResonator::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {
+    this->allpass.setGain(allpassGain);
+    this->allpass.setOrder(allpassOrder);
 }

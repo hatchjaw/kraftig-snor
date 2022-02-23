@@ -94,3 +94,11 @@ void KsVoice::updateSympatheticResonators(float freq1, float amount1, float freq
 void KsVoice::updateMutePrimary(bool shouldMute) {
     this->resonator.updateMutePrimaryResonator(shouldMute);
 }
+
+void KsVoice::updateDamping(float newDamping) {
+    this->resonator.updateDamping(newDamping);
+}
+
+void KsVoice::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {
+    this->resonator.updatePrimaryInharmonicity(allpassGain, allpassOrder);
+}

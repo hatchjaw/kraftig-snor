@@ -69,6 +69,7 @@ juce_generate_juce_header(KraftigSnor)
 
 target_sources(KraftigSnor
         PRIVATE
+        Source/AllpassFilter.cpp
         Source/LowDcNoiseGenerator.cpp
         Source/KsResonator.cpp
         Source/KsVoice.cpp

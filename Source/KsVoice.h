@@ -44,6 +44,10 @@ public:
 
     void updateMutePrimary(bool shouldMute);
 
+    void updateDamping(float newDamping);
+
+    void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
+
 private:
     bool isPrepared;
     juce::AudioBuffer<float> buffer;
