@@ -12,18 +12,22 @@
 
 #include <JuceHeader.h>
 
-/**
- * Nice idea, but doesn't stop the resonator floating away sometimes.
- */
 class LowDcNoiseGenerator {
 public:
+    enum NoiseMode {
+        NOISE,
+        BIPOLAR_IMPULSES
+    };
 
     LowDcNoiseGenerator();
 
     float getNextSample();
 
+    void setMode(NoiseMode newMode);
+
 private:
-    const int BUFFER_LENGTH{8};
+    const int BUFFER_LENGTH{64};
+    NoiseMode mode{BIPOLAR_IMPULSES};
     juce::AudioBuffer<float> buffer{1, BUFFER_LENGTH};
     juce::Random random{juce::Time::currentTimeMillis()};
     float runningTotal{0.f};

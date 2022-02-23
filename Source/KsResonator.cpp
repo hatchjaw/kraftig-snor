@@ -23,8 +23,10 @@ void KsResonator::prepareToPlay(juce::dsp::ProcessSpec &spec) {
 
 void KsResonator::renderNextBlock(juce::dsp::AudioBlock<float> &block, int startSample, int numSamples) {
     while (--numSamples >= 0) {
-        auto excitationSample = EXCITATION_SCALAR * this->envelopeExcitationSample(this->excitation.getNextSample());
-        auto currentSample = Utils::clamp(this->computeNextSample(excitationSample), 1.0f);
+        auto excitationSample = this->getExcitationSample();
+
+//        auto currentSample = Utils::clamp(this->computeNextSample(excitationSample), 1.0f);
+        auto currentSample = this->computeNextSample(excitationSample);
 
         for (auto i = (int) block.getNumChannels(); --i >= 0;) {
             block.addSample((int) i, startSample, currentSample);
@@ -32,6 +34,23 @@ void KsResonator::renderNextBlock(juce::dsp::AudioBlock<float> &block, int start
 
         ++startSample;
     }
+}
+
+float KsResonator::getExcitationSample() {
+    float sample;
+
+    if (useExcitationEnvelope && this->excitationEnvelope.isActive()) {
+        sample = this->excitation.getNextSample() * this->excitationEnvelope.getNextSample();
+    } else if (!useExcitationEnvelope && this->excitationCounter > 0) {
+        sample = this->excitation.getNextSample();
+        --this->excitationCounter;
+    } else {
+        sample = 0.f;
+    }
+
+    sample *= EXCITATION_SCALAR;
+
+    return sample;
 }
 
 float KsResonator::computeNextSample(float excitationSample) {
@@ -44,14 +63,19 @@ float KsResonator::computeNextSample(float excitationSample) {
     auto prev = delayLine.getSample(0, Utils::wrapIndex(currentIndex - 1, static_cast<int>(this->delayLineLength)));
     auto next = delayLine.getSample(0, Utils::wrapIndex(currentIndex + 1, static_cast<int>(this->delayLineLength)));
 
+    // y[n-L]
+    auto yn_L = (1. - weight) * curr + weight * next;
+    // y[n-(L+1)]
+    auto yn_L_1 = (1. - weight) * prev + weight * curr;
+
     // Karplus-Strong
     // y_{ks}[n] = x[n] + .5*y[n-L] + .5*y[n-(L+1)]
     // TODO: decay stretching/shortening
     auto sample = static_cast<float>(
             // Scale the excitation by the input amplitude/velocity
             this->amplitude * excitationSample +
-            .5f * ((1 - weight) * curr + weight * next) +
-            .5f * ((1 - weight) * prev + weight * curr)
+            (1. - this->damping) * yn_L +
+            this->damping * yn_L_1
     );
 
     // Inharmonicity
@@ -60,9 +84,11 @@ float KsResonator::computeNextSample(float excitationSample) {
     // Apply envelope. Damp primary resonator on note-off (but let sympathetic resonators ring).
     sample *= this->envelope.getNextSample();
 
+    // Update the delay line.
     this->delayLine.setSample(0, this->delayLineWriteIndex, sample);
     ++this->delayLineWriteIndex;
     this->delayLineWriteIndex %= (int) this->delayLineLength;
+
     if (!this->isSympathetic) {
         // Handle sympathetic resonators. Basic, one-way relationship, i.e. sympathetic resonators don't feed into each
         // other, nor the primary resonator.
@@ -96,7 +122,11 @@ void KsResonator::setupNote(double sampleRate, double frequency, float noteAmpli
     this->initDelayLine(sampleRate, frequency);
 
     // Set up excitation
-    this->excitationEnvelope.noteOn();
+    if (this->useExcitationEnvelope) {
+        this->excitationEnvelope.noteOn();
+    } else {
+        this->excitationCounter = static_cast<uint>(ceil(sampleRate / frequency));
+    }
 
     for (auto &sr: this->sympatheticResonators) {
         sr->delayLine.clear();
@@ -114,24 +144,18 @@ void KsResonator::initDelayLine(double sampleRate, double frequencyToUse) {
 }
 
 void KsResonator::stopNote() {
-    this->excitationEnvelope.noteOff();
+    if (this->useExcitationEnvelope) this->excitationEnvelope.noteOff();
     this->envelope.noteOff();
 }
 
 bool KsResonator::isActive() {
-    return this->envelope.isActive() || this->excitationEnvelope.isActive();
+    return this->envelope.isActive() ||
+           (this->useExcitationEnvelope && this->excitationEnvelope.isActive()) ||
+           (this->excitationCounter > 0);
 }
 
 void KsResonator::setExcitationEnvelope(juce::ADSR::Parameters &newParameters) {
     this->excitationEnvelope.setParameters(newParameters);
-}
-
-float KsResonator::envelopeExcitationSample(float excitationSample) {
-    if (this->excitationEnvelope.isActive()) {
-        return this->excitationEnvelope.getNextSample() * excitationSample;
-    } else {
-        return 0.f;
-    }
 }
 
 void KsResonator::updateSympatheticResonators(
@@ -161,5 +185,16 @@ void KsResonator::updateDamping(float newDamping) {
 
 void KsResonator::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {
     this->allpass.setGain(allpassGain);
-    this->allpass.setOrder(allpassOrder);
+    this->allpass.setOrder(static_cast<uint>(allpassOrder));
+}
+
+void KsResonator::setExcitationMode(LowDcNoiseGenerator::NoiseMode mode) {
+    this->excitation.setMode(mode);
+}
+
+void KsResonator::enableExcitationEnvelope(bool enable) {
+    this->useExcitationEnvelope = enable;
+    if (enable) {
+        this->excitationCounter = 0;
+    }
 }

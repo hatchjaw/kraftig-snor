@@ -142,6 +142,9 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    auto excitationMode = static_cast<LowDcNoiseGenerator::NoiseMode>(this->apvts.getRawParameterValue("EXCITATION_TYPE")->load());
+    auto excitationEnvelopeOn = this->apvts.getRawParameterValue("ENVELOPE_EXCITATION")->load() > .5f;
+
     auto excitationAttack = this->apvts.getRawParameterValue("EXCITE_A")->load();
     auto excitationDecay = this->apvts.getRawParameterValue("EXCITE_D")->load();
     auto excitationSustain = this->apvts.getRawParameterValue("EXCITE_S")->load();
@@ -149,7 +152,7 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
     juce::ADSR::Parameters excitationAdsrParams{excitationAttack, excitationDecay, excitationSustain,
                                                 excitationRelease};
 
-//    auto damping = this->apvts.getRawParameterValue("DAMPING")->load();
+    auto damping = this->apvts.getRawParameterValue("DAMPING")->load();
 
     auto inharmonicity1Gain = this->apvts.getRawParameterValue("INHARMONICITY_PRIMARY_GAIN")->load();
     auto inharmonicity1Order = static_cast<int>(this->apvts.getRawParameterValue(
@@ -163,12 +166,14 @@ void KraftigSnorAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer, j
 
     for (int i = 0; i < ksSynth.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<KsVoice *>(ksSynth.getVoice(i))) {
+            voice->setExcitationMode(excitationMode);
+            voice->enableExcitationEnvelope(excitationEnvelopeOn);
             voice->setExcitationEnvelope(excitationAdsrParams);
             voice->updateSympatheticResonators(sympathetic1Freq,
                                                sympathetic1Amount,
                                                sympathetic2Freq,
                                                sympathetic2Amount);
-//            voice->updateDamping(damping);
+            voice->updateDamping(damping);
             voice->updatePrimaryInharmonicity(inharmonicity1Gain, inharmonicity1Order);
             voice->updateMutePrimary(sympatheticOnly);
         }
@@ -187,7 +192,7 @@ juce::AudioProcessorEditor *KraftigSnorAudioProcessor::createEditor() {
 
     // Let JUCE create a generic UI
     auto editor = new juce::GenericAudioProcessorEditor(*this);
-    editor->setSize(400, 500);
+    editor->setSize(400, 575);
     return editor;
 }
 
@@ -206,6 +211,15 @@ void KraftigSnorAudioProcessor::setStateInformation(const void *data, int sizeIn
 juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::createParams() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            "EXCITATION_TYPE",
+            "Excitation type",
+            juce::StringArray{"Noise", "Impulses"},
+            1
+    ));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>("ENVELOPE_EXCITATION", "Excitation envelope on", false));
+
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "EXCITE_A",
             "Excitation attack (s)",
@@ -217,7 +231,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
             "EXCITE_D",
             "Excitation Decay (s)",
             juce::NormalisableRange<float>(0.f, .25f, .001f),
-            .01f
+            .1f
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -234,12 +248,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout KraftigSnorAudioProcessor::c
             0.f
     ));
 
-//    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-//            "DAMPING",
-//            "Damping",
-//            juce::NormalisableRange<float>(.5f, 1.f, .001f),
-//            1.f
-//    ));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            "DAMPING",
+            "Damping",
+            juce::NormalisableRange<float>(0.f, 1.f, .001f),
+            .5f
+    ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "INHARMONICITY_PRIMARY_GAIN",

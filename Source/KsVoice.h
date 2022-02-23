@@ -48,6 +48,10 @@ public:
 
     void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
 
+    void setExcitationMode(LowDcNoiseGenerator::NoiseMode mode);
+
+    void enableExcitationEnvelope(bool enable);
+
 private:
     bool isPrepared;
     juce::AudioBuffer<float> buffer;

@@ -102,3 +102,11 @@ void KsVoice::updateDamping(float newDamping) {
 void KsVoice::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {
     this->resonator.updatePrimaryInharmonicity(allpassGain, allpassOrder);
 }
+
+void KsVoice::enableExcitationEnvelope(bool enable) {
+    this->resonator.enableExcitationEnvelope(enable);
+}
+
+void KsVoice::setExcitationMode(LowDcNoiseGenerator::NoiseMode mode) {
+    this->resonator.setExcitationMode(mode);
+}

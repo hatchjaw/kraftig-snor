@@ -38,11 +38,15 @@ public:
 
     void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
 
+    void enableExcitationEnvelope(bool enable);
+
+    void setExcitationMode(LowDcNoiseGenerator::NoiseMode mode);
+
 private:
     /**
      * A scaling value for the excitation to the primary resonator.
      */
-    const float EXCITATION_SCALAR{.75f};
+    const float EXCITATION_SCALAR{1.f};
     /**
      * A scaling value for the excitation to the sympathetic resonators.
      */
@@ -52,12 +56,16 @@ private:
 
     float computeNextSample(float excitationSample);
 
+    float getExcitationSample();
+
     float envelopeExcitationSample(float excitationSample);
 
     juce::ADSR envelope;
 
     LowDcNoiseGenerator excitation;
+    bool useExcitationEnvelope{false};
     juce::ADSR excitationEnvelope;
+    uint excitationCounter;
 
     float damping{.5f};
 
