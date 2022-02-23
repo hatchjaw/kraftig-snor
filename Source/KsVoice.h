@@ -44,7 +44,7 @@ public:
 
     void updateMutePrimary(bool shouldMute);
 
-    void updateDamping(float newDamping);
+    void updateStretchFactor(float newStretch);
 
     void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
 

@@ -10,6 +10,7 @@
 
 #include "KsResonator.h"
 #include "Utils.h"
+#include <algorithm>    // std::max
 
 void KsResonator::prepareToPlay(juce::dsp::ProcessSpec &spec) {
     this->envelope.setSampleRate(spec.sampleRate);
@@ -68,14 +69,23 @@ float KsResonator::computeNextSample(float excitationSample) {
     // y[n-(L+1)]
     auto yn_L_1 = (1. - weight) * prev + weight * curr;
 
+    // Decay stretch...
+    //       ⎧Y_{t-p},                    probability 1-S
+    // Y_t = ⎨
+    //       ⎩1/2 * (Y_{t-p} + Y_{t-p-1}, probability 1/(1-S)
+    float recurrenceRelation;
+    if (this->stretchRandom.nextFloat() > 1./this->stretchFactor) {
+        recurrenceRelation = yn_L;
+    } else {
+        recurrenceRelation = .5 * (yn_L + yn_L_1);
+    }
+
     // Karplus-Strong
     // y_{ks}[n] = x[n] + .5*y[n-L] + .5*y[n-(L+1)]
     // TODO: decay stretching/shortening
     auto sample = static_cast<float>(
             // Scale the excitation by the input amplitude/velocity
-            this->amplitude * excitationSample +
-            (1. - this->damping) * yn_L +
-            this->damping * yn_L_1
+            this->amplitude * excitationSample + recurrenceRelation
     );
 
     // Inharmonicity
@@ -125,7 +135,8 @@ void KsResonator::setupNote(double sampleRate, double frequency, float noteAmpli
     if (this->useExcitationEnvelope) {
         this->excitationEnvelope.noteOn();
     } else {
-        this->excitationCounter = static_cast<uint>(ceil(sampleRate / frequency));
+//        this->excitationCounter = (uint) std::max(ceil(sampleRate / frequency), 50.);
+        this->excitationCounter = (uint) ceil(sampleRate / frequency);
     }
 
     for (auto &sr: this->sympatheticResonators) {
@@ -179,8 +190,8 @@ void KsResonator::updateMutePrimaryResonator(bool shouldMute) {
     this->mutePrimary = shouldMute;
 }
 
-void KsResonator::updateDamping(float newDamping) {
-    this->damping = newDamping;
+void KsResonator::updateStretchFactor(float newStretch) {
+    this->stretchFactor = newStretch;
 }
 
 void KsResonator::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {

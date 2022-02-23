@@ -34,7 +34,7 @@ public:
 
     void updateMutePrimaryResonator(bool shouldMute);
 
-    void updateDamping(float newDamping);
+    void updateStretchFactor(float newDamping);
 
     void updatePrimaryInharmonicity(float allpassGain, int allpassOrder);
 
@@ -67,7 +67,8 @@ private:
     juce::ADSR excitationEnvelope;
     uint excitationCounter;
 
-    float damping{.5f};
+    float stretchFactor{.5f};
+    juce::Random stretchRandom{juce::Time::currentTimeMillis()};
 
     double fractionalDelay{0.0};
     uint delayLineLength{0};

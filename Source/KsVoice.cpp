@@ -95,8 +95,8 @@ void KsVoice::updateMutePrimary(bool shouldMute) {
     this->resonator.updateMutePrimaryResonator(shouldMute);
 }
 
-void KsVoice::updateDamping(float newDamping) {
-    this->resonator.updateDamping(newDamping);
+void KsVoice::updateStretchFactor(float newStretch) {
+    this->resonator.updateStretchFactor(newStretch);
 }
 
 void KsVoice::updatePrimaryInharmonicity(float allpassGain, int allpassOrder) {
