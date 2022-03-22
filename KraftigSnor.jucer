@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="CfULeV" name="KraftigSnor" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.0.1"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.1.0"
               pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn"
               pluginManufacturer="TAR" pluginManufacturerCode="TarQ" pluginCode="Tr12">
   <MAINGROUP id="GKWMoJ" name="KraftigSnor">

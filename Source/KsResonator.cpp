@@ -103,7 +103,7 @@ float KsResonator::computeNextSample(float excitationSample) {
         // Handle sympathetic resonators. Basic, one-way relationship, i.e. sympathetic resonators don't feed into each
         // other, nor the primary resonator.
         auto sympathetic = 0.f;
-        for (auto &sr: this->sympatheticResonators) {
+        for (auto &sr: this->sympatheticResonators) { 
             // Yes, I know amplitude is being used within the recursive call; *this* use of amplitude means it's
             // possible to fade the sympathetic resonators in and out parametrically too.
             sympathetic += sr->amplitude * sr->computeNextSample(sample * SYMPATHETIC_SCALAR);
@@ -135,7 +135,6 @@ void KsResonator::setupNote(double sampleRate, double frequency, float noteAmpli
     if (this->useExcitationEnvelope) {
         this->excitationEnvelope.noteOn();
     } else {
-//        this->excitationCounter = (uint) std::max(ceil(sampleRate / frequency), 50.);
         this->excitationCounter = (uint) ceil(sampleRate / frequency);
     }
 
@@ -151,7 +150,7 @@ void KsResonator::initDelayLine(double sampleRate, double frequencyToUse) {
     this->fractionalDelay = sampleRate / frequency;
     this->delayLineLength = static_cast<uint>(ceil(this->fractionalDelay) + 1);
     this->delayLine.setSize(1, static_cast<int>(this->delayLineLength), true, true, true);
-    this->delayLineWriteIndex = 0;
+    this->delayLineWriteIndex = 0; //static_cast<int>(floor(delayLineLength / 2));
 }
 
 void KsResonator::stopNote() {

@@ -14,7 +14,7 @@ cmake_minimum_required(VERSION 3.15)
 # `project()` command. `project()` sets up some helpful variables that describe source/binary
 # directories, and the current project version. This is a standard CMake command.
 
-project(KRAFTIGSNOR VERSION 0.0.1)
+project(KRAFTIGSNOR VERSION 0.1.0)
 
 # If you've installed JUCE somehow (via a package manager, or directly using the CMake install
 # target), you'll need to tell this project that it depends on the installed copy of JUCE. If you've
@@ -73,7 +73,6 @@ target_sources(KraftigSnor
         Source/LowDcNoiseGenerator.cpp
         Source/KsResonator.cpp
         Source/KsVoice.cpp
-        Source/PluginEditor.cpp
         Source/PluginProcessor.cpp)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
@@ -114,3 +113,9 @@ target_link_libraries(KraftigSnor
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+
+# Sign the AU plugin to allow debugging without elevated privileges
+add_custom_command(TARGET KraftigSnor
+        POST_BUILD
+        COMMAND /bin/sh ${CMAKE_CURRENT_SOURCE_DIR}/scripts/add_debug_entitlement.sh
+        ${PROJECT_BINARY_DIR}/KraftigSnor_artefacts/Debug/AU/KratfigSnor.component)
